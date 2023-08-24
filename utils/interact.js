@@ -59,21 +59,46 @@ export const publicMint = async (mintAmount) => {
   )
 
   // Set up our Ethereum transaction
+  const buyPrice = parseInt(
+    web3.utils.toWei(String(config.price * mintAmount), 'ether')
+  ).toString(16)
   const tx = {
     to: config.contractAddress,
     from: window.ethereum.selectedAddress,
-    value: parseInt(
-      web3.utils.toWei(String(config.price * mintAmount), 'ether')
-    ).toString(16), // hex
+    value: buyPrice, // hex
     data: nftContract.methods.publicSaleMint(mintAmount).encodeABI(),
     nonce: nonce.toString(16)
   }
+
 
   try {
     const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [tx]
     })
+
+    // save receipt
+    const postData = {
+      user: window.ethereum.selectedAddress,
+      price: buyPrice,
+      amount: mintAmount,
+      token_id: "1",
+      tx_hash: txHash
+    };
+    fetch("https://api.ethlas.readmost.kz/v1/receipt/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(postData)
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log("POST request successful:", data);
+      })
+      .catch(error => {
+        console.error("Error sending POST request:", error);
+      });
 
     return {
       success: true,
